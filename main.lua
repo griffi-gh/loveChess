@@ -2,7 +2,8 @@ pickStyle=false
 
 Grid = require'grid'
 cw,ch = 64,64
-fig_size = 48
+bw,bh = 8,8
+figsize = 0.75
 picked = nil
 
 function switch(e,a,b)
@@ -42,25 +43,30 @@ function fillBoard(gr,inv)
   
 end
 
-function flipBoard(gr)
-  --[[local new=Grid.new(gr.w,gr.h)
-  for i=1,gr.w do
-    for j=1,gr.h do
-      new:set(i,gr.h-j+1,gr:get(i,j))
-    end
-  end
-  return new]]
-  --placeholder
-  return gr
+function flipBoard(gr) return gr end --placeholder
+
+local function setFigSize(h)
+  fig_size = ch*h
+  chess_font=love.graphics.newFont('chess.ttf',fig_size)
+end
+
+function love.resize(w,h)
+  print(("Window resized:%d,%d"):format(w, h))
+  --[[if w*h<(bw*bh)*((cw+ch)/2) then
+    return
+  end]]
+  cw=w/bw
+  ch=h/bh
+  setFigSize(figsize)
 end
 
 function love.load()
-  grid = Grid.new(8,8)
+  grid = Grid.new(bw,bh)
   fillBoard(grid)
-  love.window.setMode(grid.w*cw, grid.h*ch, {vsync=false} )
+  love.window.setMode(grid.w*cw, grid.h*ch, {vsync=false,resizable=true} )
   love.window.setIcon(love.image.newImageData('icon.png'))
   font=love.graphics.newFont(24)
-  chess_font=love.graphics.newFont('chess.ttf',fig_size)
+  setFigSize(figsize)
   fig={'g','h','i','j','k','l'}  -- пешка конь слон ладья ферзь король
   
   movFallback=function(gr,me,sx,sy,x,y) 
@@ -109,7 +115,7 @@ function love.load()
       end
     end,
     [6]=function(gr,me,ox,oy,x,y,REC) 
-      if figPreventKill(gr,me,x,y) then return end
+      if figPreventKill(gr,me,x,y) or (ox==x and oy==y) then return end
       if not REC then
         for i=1,gr.w do
           for j=1,gr.h do
@@ -118,20 +124,6 @@ function love.load()
               local fn=figmov[v.fig]
               local r1,r2
               if v.team~=me.team and fn then
-                --[[
-                local cgr=Grid.new(gr.w,gr.h)
-                for i=1,gr.w do
-                  for i=1,gr.h do
-                    local v=gr:get(i,j)
-                    if type(v)=='table' then
-                      cgr:set(i,j,copy(v))
-                    end
-                  end
-                  cgr:set(x,y,copy(me))
-                  ...
-                  cgr=nil
-                end]]
-                
                 local orig=gr:get(x,y)
                 gr:set(x,y,copy(me))
                 r1,r2=fn(gr,v,i,j,x,y,true)
@@ -213,7 +205,7 @@ function love.draw()
       
       g.setColor(switch(not(isDark),dark,light))
       if i==1 then
-        g.print(9-j,cx,cy)
+        g.print(grid.h+1-j,cx,cy)
       end
       if j==grid.h then
         local sym=string.char(i+96)
